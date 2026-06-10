@@ -56,3 +56,33 @@ class ThucPhamChucNang(DuocPham):
     def tinh_gia_ban(self):
         # Thực phẩm chức năng lời 8%
         return self.gia_nhap * 1.08
+    
+# ==========================================
+# 3. LỚP ĐƠN THUỐC (DON THUOC)
+# ==========================================
+class DonThuoc:
+    def __init__(self, ma_don, ngay_ke):
+        self.ma_don = ma_don
+        self.ngay_ke = ngay_ke
+        self.danh_sach_thuoc = []  # Lưu các tuple: (đối tượng_thuoc, so_luong)
+
+    def them_thuoc_vao_don(self, duoc_pham, so_luong):
+        """Kiểm tra hạn dùng trước khi thêm, nếu hết hạn thì báo lỗi ngay."""
+        if not duoc_pham.kiem_tra_han_dung():
+            raise ExpiredDateError(f"Không thể bán! Thuốc {duoc_pham.ten_thuoc} đã hết hạn!")
+        self.danh_sach_thuoc.append((duoc_pham, so_luong))
+
+    def tinh_tong_tien(self):
+        """Tính tổng tiền bằng cách gọi hàm tinh_gia_ban() đa hình của từng lớp con."""
+        tong_tien = 0
+        for thuoc, so_luong in self.danh_sach_thuoc:
+            tong_tien += thuoc.tinh_gia_ban() * so_luong
+        return tong_tien
+
+    def xuat_hoa_don(self):
+        """In hóa đơn ra màn hình để kiểm tra nhanh."""
+        print(f"--- HÓA ĐƠN: {self.ma_don} ---")
+        print(f"Ngày kê: {self.ngay_ke}")
+        for thuoc, so_luong in self.danh_sach_thuoc:
+            print(f"- {thuoc.ten_thuoc} x{so_luong} | Đơn giá: {thuoc.tinh_gia_ban():.2f}")
+        print(f"Tổng tiền cần thanh toán: {self.tinh_tong_tien():.2f}")
