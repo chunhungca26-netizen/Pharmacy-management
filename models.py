@@ -1,3 +1,5 @@
+from hashtable import HashTableCaiDat
+
 # ==========================================
 # 1. ĐỊNH NGHĨA CÁC LỚP LỖI TỰ CHẾ (CUSTOM EXCEPTIONS)
 # ==========================================
@@ -86,3 +88,36 @@ class DonThuoc:
         for thuoc, so_luong in self.danh_sach_thuoc:
             print(f"- {thuoc.ten_thuoc} x{so_luong} | Đơn giá: {thuoc.tinh_gia_ban():.2f}")
         print(f"Tổng tiền cần thanh toán: {self.tinh_tong_tien():.2f}")
+        
+# ==========================================
+# BƯỚC 2: CÀI ĐẶT KHO THUỐC VÀ TOÁN TỬ NẠP CHỒNG +=
+# ==========================================
+class KhoThuoc:
+    def __init__(self):
+        # [span_8](start_span)[span_9](start_span)Khởi tạo Bảng băm tự cài đặt của Nhung[span_8](end_span)[span_9](end_span)
+        self.kho_du_lieu = HashTableCaiDat()
+
+    def them_thuoc_moi(self, thuoc):
+        """Hàm hỗ trợ khởi tạo thuốc vào kho với số lượng ban đầu bằng 0"""
+        # [span_10](start_span)[span_11](start_span)Lưu vào bảng băm: Key là Tên thuốc, Value là một dict chứa đối tượng và số lượng[span_10](end_span)[span_11](end_span)
+        self.kho_du_lieu.insert(thuoc.ten_thuoc, {"doi_tuong": thuoc, "so_luong": 0})
+
+    def __iadd__(self, other):
+        """
+        [span_12](start_span)[span_13](start_span)Nạp chồng toán tử += để cộng dồn số lượng thuốc vào kho[span_12](end_span)[span_13](end_span).
+        Cú pháp sử dụng: my_kho += ("Paracetamol", 100)
+        """
+        # other nhận vào một tuple gồm: (ten_thuoc, so_luong_them)
+        ten_thuoc, so_luong_them = other
+        
+        # [span_14](start_span)[span_15](start_span)Gọi hàm search() từ file hashtable.py của Nhung để tra cứu thuốc[span_14](end_span)[span_15](end_span)
+        thong_tin_thuoc = self.kho_du_lieu.search(ten_thuoc)
+        
+        if thong_tin_thuoc:
+            # [span_16](start_span)[span_17](start_span)Nếu tìm thấy thuốc trong bảng băm, tiến hành cộng dồn số lượng[span_16](end_span)[span_17](end_span)
+            thong_tin_thuoc["so_luong"] += so_luong_them
+            print(f"[KHO] Đã cộng thêm {so_luong_them} vào thuốc '{ten_thuoc}'.")
+        else:
+            print(f"[LỖI] Không tìm thấy thuốc '{ten_thuoc}' trong kho!")
+            
+        return self
