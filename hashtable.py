@@ -50,7 +50,7 @@ class HashTableCaiDat:
             current = current.next
         return None
 
-    # --- Các hàm thuật toán sẽ được Nhung viết tiếp ở Bước 3 ---
+    # --- Các hàm thuật toán của Nhung (Đã đồng bộ thuộc tính với Thư) ---
     def _parse_date(self, date_str):
         if isinstance(date_str, datetime.date): return date_str
         try: return datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -83,12 +83,16 @@ class HashTableCaiDat:
                 arr.pop()
         return ket_qua
 
-    def loc_de_quy_duoc_ly(self, danh_sach_thuoc, danh_muc_muc_tieu, index=0, ket_qua=None):
+    def loc_de_quy_thanh_phan(self, danh_sach_thuoc, tu_khoa_muc_tieu, index=0, ket_qua=None):
+        """Đệ quy lọc thuốc theo tên hoặc thành phần dược lý (Thay cho thuộc tính danh_muc bị thiếu)"""
         if ket_qua is None: ket_qua = []
         if index >= len(danh_sach_thuoc): return ket_qua
+        
         thuoc = danh_sach_thuoc[index]
-        dm = getattr(thuoc, 'danh_muc', '').lower()
+        ten = getattr(thuoc, 'ten_thuoc', '').lower()
         tp = getattr(thuoc, 'thanh_phan', '').lower()
-        if danh_muc_muc_tieu.lower() in dm or danh_muc_muc_tieu.lower() in tp:
+        
+        if tu_khoa_muc_tieu.lower() in ten or tu_khoa_muc_tieu.lower() in tp:
             ket_qua.append(thuoc)
-        return self.loc_de_quy_duoc_ly(danh_sach_thuoc, danh_muc_muc_tieu, index + 1, ket_qua)
+            
+        return self.loc_de_quy_thanh_phan(danh_sach_thuoc, tu_khoa_muc_tieu, index + 1, ket_qua)
