@@ -18,7 +18,7 @@ class ExpiredDateError(Exception):
 from datetime import datetime
 
 # ==========================================
-# 2. ĐỊNH NGHĨA LỚP CHA & CÁC LỚP CON KẾ THỪA
+# 2 ĐỊNH NGHĨA LỚP CHA & CÁC LỚP CON KẾ THỪA
 # ==========================================
 class DuocPham:
     def __init__(self, ma_thuoc, ten_thuoc, thanh_phan, don_vi_tinh, gia_nhap, han_su_dung):
@@ -92,6 +92,8 @@ class DonThuoc:
 # ==========================================
 # BƯỚC 2: CÀI ĐẶT KHO THUỐC VÀ TOÁN TỬ NẠP CHỒNG +=
 # ==========================================
+import json
+import os
 class KhoThuoc:
     def __init__(self):
         # [span_8](start_span)[span_9](start_span)Khởi tạo Bảng băm tự cài đặt của Nhung[span_8](end_span)[span_9](end_span)
@@ -121,3 +123,88 @@ class KhoThuoc:
             print(f"[LỖI] Không tìm thấy thuốc '{ten_thuoc}' trong kho!")
             
         return self
+    
+# ==========================================
+# BƯỚC 3: HÀM ĐỌC VÀ GHI DỮ LIỆU FILE JSON
+# ==========================================
+
+def luu_du_lieu_json(kho_thuoc, file_path="database.json"):
+    """
+    Duyệt qua bảng băm của Nhung và ghi toàn bộ thuốc vào file database.json.
+    """
+    du_lieu_kho = []
+    
+    # Duyệt qua từng bucket trong mảng bucket_array của bảng băm để quét các Node
+    for current in kho_thuoc.kho_du_lieu.bucket_array:
+        while current:
+            thong_tin = current.value  # Lấy dict {"doi_tuong": thuoc, "so_luong": X}
+            thuoc = thong_tin["doi_tuong"]
+            
+            # Chuyển các thuộc tính đối tượng Object thành dict để lưu vào JSON
+            data_thuoc = {
+                "loai": thuoc.__class__.__name__,
+                "ma_thuoc": thuoc.ma_thuoc,
+                "ten_thuoc": thuoc.ten_thuoc,
+                "thanh_phan": thuoc.thanh_phan,
+                "don_vi_tinh": thuoc.don_vi_tinh,
+                "gia_nhap": thuoc.gia_nhap,
+                "han_su_dung": thuoc.han_su_dung,
+                "so_luong": thong_tin["so_luong"]
+            }
+            
+            # Nếu là loại Thuốc Kê Đơn thì lưu thêm 2 thuộc tính đặc thù riêng
+            if data_thuoc["loai"] == "ThuocKeDon":
+                data_thuoc["ma_bac_si"] = thuoc.ma_bac_si
+                data_thuoc["canh_bao_lieu_dung"] = thuoc.canh_bao_lieu_dung
+                
+            du_lieu_kho.append(data_thuoc)
+            current = current.next
+
+    # Ghi toàn bộ danh sách dữ liệu vào file JSON cấu trúc rõ ràng
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(du_lieu_kho, f, ensure_ascii=False, indent=4)
+    print(f"[FILE] Đã sao lưu dữ liệu kho thuốc vào '{file_path}' thành công!")
+
+
+def doc_du_lieu_json(kho_thuoc, file_path="database.json"):
+    """
+    Đọc dữ liệu từ file JSON và tái tạo lại đối tượng thuốc nạp vào bảng băm.
+    """
+    if not os.path.exists(file_path):
+        print(f"[FILE] Chưa có dữ liệu cũ '{file_path}', khởi tạo kho thuốc trống.")
+        return
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        try:
+            du_lieu_kho = json.load(f)
+        except json.JSONDecodeError:
+            print(f"[FILE] Tệp tin '{file_path}' trống hoặc sai định dạng.")
+            return
+
+    # Khôi phục các lớp Object từ chuỗi văn bản trong JSON
+    from models import ThuocKhongKeDon, ThuocKeDon, ThucPhamChucNang
+
+    for item in du_lieu_kho:
+        # Nhận diện loại thuốc để khởi tạo đúng lớp con (Tính đa hình)
+        if item["loai"] == "ThuocKeDon":
+            thuoc = ThuocKeDon(
+                item["ma_thuoc"], item["ten_thuoc"], item["thanh_phan"], 
+                item["don_vi_tinh"], item["gia_nhap"], item["han_su_dung"],
+                item["ma_bac_si"], item["canh_bao_lieu_dung"]
+            )
+        elif item["loai"] == "ThuocKhongKeDon":
+            thuoc = ThuocKhongKeDon(
+                item["ma_thuoc"], item["ten_thuoc"], item["thanh_phan"], 
+                item["don_vi_tinh"], item["gia_nhap"], item["han_su_dung"]
+            )
+        else:
+            thuoc = ThucPhamChucNang(
+                item["ma_thuoc"], item["ten_thuoc"], item["thanh_phan"], 
+                item["don_vi_tinh"], item["gia_nhap"], item["han_su_dung"]
+            )
+        
+        # Đưa thuốc trở lại bảng băm và nạp lại số lượng tồn kho cũ bằng toán tử +=
+        kho_thuoc.them_thuoc_moi(thuoc)
+        kho_thuoc += (thuoc.ten_thuoc, item["so_luong"])
+        
+    print(f"[FILE] Phục hồi toàn bộ dữ liệu từ '{file_path}' lên hệ thống thành công!")
